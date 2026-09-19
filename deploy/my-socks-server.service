@@ -1,14 +1,14 @@
 # systemd unit, an alternative to docker-compose.
 #
 #   install -m 0755 target/x86_64-unknown-linux-musl/release/my-socks-server /usr/local/bin/
-#   install -d -m 0700 /etc/my-socks-server
-#   install -m 0600 settings.example.yaml /etc/my-socks-server/mysocksserver.yaml   # then edit
+#   install -m 0600 settings.example.yaml /root/.mysocksserver     # ~ of root, then edit
 #   install -m 0644 deploy/my-socks-server.service /etc/systemd/system/
 #   systemctl daemon-reload && systemctl enable --now my-socks-server
 #
-# The settings file stays root-only. systemd hands a copy to the service as a credential and
-# HOME points at the credentials directory, so the server finds it at ~/.mysocksserver exactly
-# as it would in the container.
+# Settings live in ~/.mysocksserver of the administrator: /root/.mysocksserver below, or the
+# ~/.mysocksserver of any other user (change the LoadCredential path). The file stays 0600 and
+# owned by that user: systemd reads it as root and hands a copy to the service as a credential.
+# HOME points at the credentials directory, so the server finds it at ~/.mysocksserver too.
 
 [Unit]
 Description=my-socks-server SOCKS5 proxy
@@ -18,7 +18,7 @@ Wants=network-online.target
 [Service]
 Type=exec
 ExecStart=/usr/local/bin/my-socks-server
-LoadCredential=.mysocksserver:/etc/my-socks-server/mysocksserver.yaml
+LoadCredential=.mysocksserver:/root/.mysocksserver
 Environment=HOME=%d
 Environment=RUST_LOG=info
 Environment=LOG_FORMAT=json

@@ -13,9 +13,18 @@ services:
       RUST_LOG: info
       LOG_FORMAT: json
     volumes:
-      # Prepare the file once: cp settings.example.yaml .mysocksserver, edit it, then
-      #   sudo chown 65534 .mysocksserver && chmod 600 .mysocksserver
-      - ./.mysocksserver:/home/socks/.mysocksserver:ro
+      # Settings live in ~/.mysocksserver of whoever runs compose, and are seen by the server
+      # as ~/.mysocksserver inside the container too (HOME=/home/socks). Prepare once:
+      #   cp settings.example.yaml ~/.mysocksserver          # edit it
+      #   sudo chown 65534 ~/.mysocksserver && sudo chmod 600 ~/.mysocksserver
+      # (the container runs as nobody, 65534). A missing file fails `up` instead of Docker
+      # silently creating a directory in its place.
+      - type: bind
+        source: ${HOME}/.mysocksserver
+        target: /home/socks/.mysocksserver
+        read_only: true
+        bind:
+          create_host_path: false
     ulimits:
       nofile:
         soft: 1048576

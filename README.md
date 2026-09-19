@@ -91,14 +91,19 @@ cargo run --release
 ### Docker / docker-compose
 
 Образ многоступенчатый: статический бинарь `x86_64-unknown-linux-musl` в пустом образе `scratch`,
-запуск от `nobody` (65534). Сервер ищет настройки в `$HOME/.mysocksserver`, в образе
-`HOME=/home/socks`.
+запуск от `nobody` (65534).
+
+Настройки лежат в `~/.mysocksserver` того, кто запускает compose. Этот файл монтируется в
+контейнер тоже как `~/.mysocksserver` (в образе `HOME=/home/socks`). Контейнер работает от
+`nobody`, поэтому файл нужно отдать ему на чтение:
 
 ```bash
-cp settings.example.yaml .mysocksserver            # отредактировать
-sudo chown 65534 .mysocksserver && chmod 600 .mysocksserver
+cp settings.example.yaml ~/.mysocksserver          # отредактировать
+sudo chown 65534 ~/.mysocksserver && sudo chmod 600 ~/.mysocksserver   # дальше правка через sudo
 docker compose up -d --build
 ```
+
+Если файла нет, `docker compose up` падает с ошибкой, а не создаёт на его месте пустой каталог.
 
 В [docker-compose.yml](docker-compose.yml) заданы `ulimits nofile 1048576`, `restart: unless-stopped`,
 read-only FS, `cap_drop: ALL` и `network_mode: host`. Host-сеть выбрана специально: сервер видит
@@ -109,9 +114,10 @@ read-only FS, `cap_drop: ALL` и `network_mode: host`. Host-сеть выбра�
 
 Unit: [deploy/my-socks-server.service](deploy/my-socks-server.service) (`DynamicUser=yes`,
 `LimitNOFILE=1048576`, `Restart=always`, hardening). Установка описана в комментарии в начале файла.
-Настройки лежат в `/etc/my-socks-server/mysocksserver.yaml` с правами root 0600. systemd передаёт их
-сервису через `LoadCredential`, а `HOME` указывает на каталог credentials, поэтому сервер находит файл
-как `~/.mysocksserver`.
+Настройки лежат в `~/.mysocksserver` администратора. В unit указан `/root/.mysocksserver`, но можно
+прописать `~/.mysocksserver` любого пользователя. Файл остаётся у владельца с правами 0600: systemd
+читает его от root и передаёт сервису через `LoadCredential`, а `HOME` сервиса указывает на каталог
+credentials, поэтому сервер тоже находит файл как `~/.mysocksserver`.
 
 ## Проверка
 
