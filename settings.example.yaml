@@ -1,0 +1,53 @@
+# my-socks-server settings. The server reads them from ~/.mysocksserver
+# (the same convention as ~/.mynosqlserver). Only `users` is required.
+# The file holds passwords: chmod 600, and never commit the real one.
+
+# Address and port to listen on.
+listen_address: 0.0.0.0:1080
+
+# RFC 1929 username/password pairs. Passwords may contain any characters (quote them).
+users:
+  - username: alice
+    password: "change-me-to-a-long-random-string"
+
+# Clients allowed to connect (IP or CIDR). Everyone else is dropped right after accept().
+# Empty or missing = any client. Strongly recommended: SOCKS5 sends the password in clear text.
+client_whitelist:
+  - 203.0.113.10
+  - 198.51.100.0/24
+
+# Destination ports that are never allowed (whitelisted destinations included).
+blocked_ports: [25]
+
+# Internal resources.
+#   allow_internal: true   opens every private network: 10/8, 172.16/12, 192.168/16,
+#                          100.64/10 (CGNAT), fc00::/7 (ULA).
+#   internal_whitelist     opens exactly the listed internal destinations:
+#                          IP or CIDR, optionally :port or :port-range; IPv6 with a port as [addr]:port.
+# Loopback (127/8, ::1: services of the proxy host itself) and link-local (169.254/16 including
+# the cloud metadata endpoint 169.254.169.254, fe80::/10) are opened only by an explicit
+# internal_whitelist entry. 0.0.0.0/8, multicast and reserved ranges are never reachable.
+allow_internal: false
+internal_whitelist:
+  - 10.10.0.0/16
+  - 10.20.0.5:5432
+  - 10.20.0.0/24:8000-8100
+  - "[fd00:10::/64]:443"
+
+# Simultaneous client connections; each one also holds a connection to its target.
+max_connections: 4096
+
+# Timeouts, seconds.
+handshake_timeout_sec: 10   # greeting + authentication + request
+connect_timeout_sec: 15     # DNS resolution + TCP connect to the target
+idle_timeout_sec: 300       # no traffic in either direction while relaying
+shutdown_grace_sec: 10      # time active connections get after SIGTERM/SIGINT
+
+# Period of the "stats" log line.
+stats_interval_sec: 60
+
+# Brute-force protection: ban_max_failures failed logins within ban_window_sec ban the
+# client IP (IPv6: its /64) for ban_duration_sec. ban_max_failures: 0 disables banning.
+ban_max_failures: 5
+ban_window_sec: 600
+ban_duration_sec: 3600

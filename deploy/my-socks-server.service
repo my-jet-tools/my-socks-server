@@ -1,0 +1,65 @@
+# systemd unit, an alternative to docker-compose.
+#
+#   install -m 0755 target/x86_64-unknown-linux-musl/release/my-socks-server /usr/local/bin/
+#   install -d -m 0700 /etc/my-socks-server
+#   install -m 0600 settings.example.yaml /etc/my-socks-server/mysocksserver.yaml   # then edit
+#   install -m 0644 deploy/my-socks-server.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now my-socks-server
+#
+# The settings file stays root-only. systemd hands a copy to the service as a credential and
+# HOME points at the credentials directory, so the server finds it at ~/.mysocksserver exactly
+# as it would in the container.
+
+[Unit]
+Description=my-socks-server SOCKS5 proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/my-socks-server
+LoadCredential=.mysocksserver:/etc/my-socks-server/mysocksserver.yaml
+Environment=HOME=%d
+Environment=RUST_LOG=info
+Environment=LOG_FORMAT=json
+
+DynamicUser=yes
+Restart=always
+RestartSec=2s
+LimitNOFILE=1048576
+KillSignal=SIGTERM
+# Longer than shutdown_grace_sec.
+TimeoutStopSec=20s
+
+# Hardening
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+# @system-service includes setrlimit(), used at startup to raise RLIMIT_NOFILE.
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

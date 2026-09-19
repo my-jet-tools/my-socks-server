@@ -1,0 +1,37 @@
+[package]
+name = "my-socks-server"
+version = "0.1.0"
+edition = "2024"
+description = "SOCKS5 proxy (CONNECT, username/password auth) hardened against fd leaks"
+publish = false
+
+[dependencies]
+anyhow = "*"
+mimalloc = "*"
+parking_lot = "*"
+rlimit = "*"
+serde = { version = "*", features = ["derive"] }
+serde_yaml = "*"
+socket2 = { version = "*", features = ["all"] }
+subtle = "*"
+thiserror = "*"
+tokio = { version = "*", features = [
+    "rt-multi-thread",
+    "macros",
+    "net",
+    "io-util",
+    "time",
+    "sync",
+    "signal",
+] }
+tokio-util = "*"
+tracing = "*"
+tracing-subscriber = { version = "*", features = ["env-filter", "json"] }
+
+[dev-dependencies]
+tokio = { version = "*", features = ["test-util"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

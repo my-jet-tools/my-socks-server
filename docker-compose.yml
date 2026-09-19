@@ -1,0 +1,32 @@
+services:
+  my-socks-server:
+    build: .
+    image: my-socks-server:latest
+    platform: linux/amd64
+    container_name: my-socks-server
+    restart: unless-stopped
+    # Host networking: the proxy sees the real client IPs (client_whitelist and bans rely on
+    # them), and no Docker NAT sits in front of every proxied connection. The port comes from
+    # listen_address in the settings file.
+    network_mode: host
+    environment:
+      RUST_LOG: info
+      LOG_FORMAT: json
+    volumes:
+      # Prepare the file once: cp settings.example.yaml .mysocksserver, edit it, then
+      #   sudo chown 65534 .mysocksserver && chmod 600 .mysocksserver
+      - ./.mysocksserver:/home/socks/.mysocksserver:ro
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    # Longer than shutdown_grace_sec, so the drain is not cut short by SIGKILL.
+    stop_grace_period: 20s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 50m
+        max-file: "3"

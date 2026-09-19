@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+.mcp.json
+
+# Local settings file with real passwords
+.mysocksserver
+
